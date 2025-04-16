@@ -20,7 +20,7 @@ Deno.test(function Primitives() {
     foo: Shapes.string(),
   });
   const arrShape = Shapes.array(Shapes.number());
-  const optShape = Shapes.optional(Shapes.number());
+  const optShape = Shapes.nullable(Shapes.number());
 
   const shapes = [strShape, numShape, boolShape, objShape, arrShape, optShape];
 
@@ -42,11 +42,11 @@ Deno.test(function Primitives() {
   assert(arrShape.checkFn(arr), "Type check of array failed");
   assert(
     optShape.checkFn(opt),
-    "Type check of optional value failed when value is null",
+    "Type check of nullable value failed when value is null",
   );
   assert(
     optShape.checkFn(num),
-    "Type check of optional value failed when value is present",
+    "Type check of nullable value failed when value is present",
   );
 
   // Each shape should only pass checking on one of the parsed values
@@ -91,7 +91,7 @@ Deno.test(function Objects() {
   const UserShape = Shapes.object("User", {
     name: Shapes.string(),
     id: Shapes.number(),
-    age: Shapes.optional(Shapes.number()),
+    age: Shapes.nullable(Shapes.number()),
     admin: Shapes.boolean(),
     groups: Shapes.array(Shapes.string()),
   });
@@ -108,18 +108,22 @@ Deno.test(function Objects() {
 Deno.test(function Arrays() {
   const simpleStringArrayJson = '["a", "b", "c"]';
   const nullableStringArrayJson = '["a", "b", null, "c"]';
+  const nullableStringArrayWithNumberJson = '["a", "b", null, "c", 99.543]';
   const emptyArrayJson = "[]";
   const objectsArrayJson =
     '[{"foo": "bar", "baz": 100}, {"foo": "bar", "baz": 100}]';
 
   const stringArray = JSON.parse(simpleStringArrayJson);
   const nullableStringArray = JSON.parse(nullableStringArrayJson);
+  const nullableStringArrayWithNumber = JSON.parse(
+    nullableStringArrayWithNumberJson,
+  );
   const emptyArray = JSON.parse(emptyArrayJson);
   const objectsArray = JSON.parse(objectsArrayJson);
 
   const StringArrayShape = Shapes.array(Shapes.string());
   const NullableStringArrayShape = Shapes.array(
-    Shapes.optional(Shapes.string()),
+    Shapes.nullable(Shapes.string()),
   );
 
   const ObjectShape = Shapes.object({
@@ -133,6 +137,7 @@ Deno.test(function Arrays() {
 
   assertFalse(StringArrayShape.checkFn(nullableStringArray));
   assert(NullableStringArrayShape.checkFn(nullableStringArray));
+  assertFalse(NullableStringArrayShape.checkFn(nullableStringArrayWithNumber));
 
   assert(ObjectsArrayShape.checkFn(emptyArray));
   assert(ObjectsArrayShape.checkFn(objectsArray));

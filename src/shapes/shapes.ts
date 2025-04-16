@@ -27,14 +27,16 @@ function isBoolean(input: unknown): input is boolean {
   return typeof input === "boolean";
 }
 
+function isUndefined(input: unknown): input is undefined {
+  return input === undefined;
+}
+
 // Shapes
 // These are wrappers for data validation logic that can be mapped down to actual TS types.
 // They do not actually hold the data to be checked, so we avoid allocating an extra copy of the input data!
 interface TypeShape {
   typename: string;
-  checkFn: this["optional"] extends true
-    ? (x: unknown) => x is this["primitive"] | null
-    : (x: unknown) => x is this["primitive"];
+  checkFn: (x: unknown) => x is this["primitive"];
   primitive: unknown;
   optional: boolean;
 }
@@ -59,6 +61,11 @@ interface ObjectShape<T extends ObjectProperties = ObjectProperties>
 
 interface OptionalShape<T extends TypeShape> extends TypeShape {
   inner: T;
+  primitive: this["inner"]["primitive"] | undefined;
+}
+
+interface NullableShape<T extends TypeShape> extends TypeShape {
+  inner: T;
   primitive: this["inner"]["primitive"] | null;
 }
 
@@ -76,10 +83,20 @@ interface ArrayShape<T extends TypeShape> extends TypeShape {
 
 export function optional<T extends TypeShape>(shape: T): OptionalShape<T> {
   return {
-    typename: `Optional<${shape.typename}>`,
+    typename: `${shape.typename} | undefined`,
+    checkFn: (input: unknown): input is T["primitive"] | undefined =>
+      isUndefined(input) || shape["checkFn"](input),
+    inner: shape,
+    optional: true,
+  } as never;
+}
+
+export function nullable<T extends TypeShape>(shape: T): NullableShape<T> {
+  return {
+    typename: `${shape.typename} | null`,
     checkFn: (input: unknown): input is T["primitive"] | null =>
       isNull(input) || shape["checkFn"](input),
-    inner: { ...shape },
+    inner: shape,
   } as never;
 }
 
@@ -182,8 +199,11 @@ export function object<T extends ObjectProperties>(
 
       // Check that all registered properties on the Object shape are present in the input data, and are of expected type
       for (const property in properties) {
+        const field =
+          (input as { [property: string | number]: unknown })[property];
+
         // Property presence check
-        if (!(property in input)) {
+        if (!(property in input) && !properties[property].optional) {
           console.warn(
             `Checking ${typename} failed due to missing property "${property}" (type ${
               properties[property].typename
@@ -193,9 +213,6 @@ export function object<T extends ObjectProperties>(
         }
 
         // Property type check
-        const field =
-          (input as { [property: string | number]: unknown })[property];
-
         if (!properties[property].checkFn(field)) {
           console.warn(
             `Checking ${typename} failed on property "${property}" with value "${field}" (type ${typeof field}), ` +
