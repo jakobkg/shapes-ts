@@ -104,3 +104,36 @@ Deno.test(function Objects() {
   assertFalse(UserShape.checkFn(userWithExtraField));
   assertFalse(UserShape.checkFn(nonObjectString));
 });
+
+Deno.test(function Arrays() {
+  const simpleStringArrayJson = '["a", "b", "c"]';
+  const nullableStringArrayJson = '["a", "b", null, "c"]';
+  const emptyArrayJson = "[]";
+  const objectsArrayJson =
+    '[{"foo": "bar", "baz": 100}, {"foo": "bar", "baz": 100}]';
+
+  const stringArray = JSON.parse(simpleStringArrayJson);
+  const nullableStringArray = JSON.parse(nullableStringArrayJson);
+  const emptyArray = JSON.parse(emptyArrayJson);
+  const objectsArray = JSON.parse(objectsArrayJson);
+
+  const StringArrayShape = Shapes.array(Shapes.string());
+  const NullableStringArrayShape = Shapes.array(
+    Shapes.optional(Shapes.string()),
+  );
+
+  const ObjectShape = Shapes.object({
+    foo: Shapes.string(),
+    baz: Shapes.number(),
+  });
+  const ObjectsArrayShape = Shapes.array(ObjectShape);
+
+  assert(StringArrayShape.checkFn(stringArray));
+  assert(StringArrayShape.checkFn(emptyArray));
+
+  assertFalse(StringArrayShape.checkFn(nullableStringArray));
+  assert(NullableStringArrayShape.checkFn(nullableStringArray));
+
+  assert(ObjectsArrayShape.checkFn(emptyArray));
+  assert(ObjectsArrayShape.checkFn(objectsArray));
+});
