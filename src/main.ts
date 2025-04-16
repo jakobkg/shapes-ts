@@ -7,7 +7,9 @@ const User = Shapes.object("User", {
   permissions: Shapes.optional(Shapes.array(Shapes.string())),
 });
 
-const parsed = JSON.parse('{"name": "jakob", "age": 29, "hasSignedIn": true, "permissions": ["developer", "admin"]}');
+const parsed = JSON.parse(
+  '{"name": "jakob", "age": 29, "hasSignedIn": true, "permissions": ["developer", "admin"]}',
+);
 
 type User = Shapes.Type<typeof User>;
 
